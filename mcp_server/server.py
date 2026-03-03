@@ -1,7 +1,7 @@
 import json
 from typing import Optional
 from fastapi import FastAPI, Response, Header
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 import uvicorn
 
 from mcp_server.services.mcp_server import MCPServer
@@ -13,6 +13,12 @@ MCP_SESSION_ID_HEADER = "Mcp-Session-Id"
 # FastAPI app
 app = FastAPI(title="MCP Tools Server", version="1.0.0")
 mcp_server = MCPServer()
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return JSONResponse({"status": "healthy"})
 
 
 def _validate_accept_header(accept_header: Optional[str]) -> bool:
@@ -119,11 +125,4 @@ async def handle_mcp_request(
     )
 
 
-if __name__ == "__main__":
-    uvicorn.run(
-        "server:app",
-        host="0.0.0.0",
-        port=8006,
-        reload=True,
-        log_level="debug"
-    )
+# (No __main__ block needed; Uvicorn is started from Dockerfile)

@@ -1,5 +1,6 @@
 import uuid
 import asyncio
+import time
 
 from mcp_server.models.request import MCPRequest
 from mcp_server.models.response import MCPResponse, ErrorResponse
@@ -17,7 +18,7 @@ class MCPSession:
     def __init__(self, session_id: str):
         self.session_id = session_id
         self.ready_for_operation = False
-        self.created_at = asyncio.get_event_loop().time()
+        self.created_at = time.time()
         self.last_activity = self.created_at
 
 
@@ -59,7 +60,7 @@ class MCPServer:
         """Get an existing session"""
         session = self.sessions.get(session_id)
         if session:
-            session.last_activity = asyncio.get_event_loop().time()
+            session.last_activity = time.time()
         return session
 
     def handle_initialize(self, request: MCPRequest) -> tuple[MCPResponse, str]:
