@@ -9,17 +9,52 @@ from agent.models.message import Message, Role
 
 
 async def main():
-    #TODO:
-    # 1. Take a look what applies DialClient
-    # 2. Create empty list where you save tools from MCP Servers later
-    # 3. Create empty dict where where key is str (tool name) and value is instance of MCPClient or CustomMCPClient
-    # 4. Create UMS MCPClient, url is `http://localhost:8006/mcp` (use static method create and don't forget that its async)
-    # 5. Collect tools and dict [tool name, mcp client]
-    # 6. Do steps 4 and 5 for `https://remote.mcpservers.org/fetch/mcp`
-    # 7. Create DialClient, endpoint is `https://ai-proxy.lab.epam.com`
-    # 8. Create array with Messages and add there System message with simple instructions for LLM that it should help to handle user request
-    # 9. Create simple console chat (as we done in previous tasks)
-    raise NotImplementedError()
+    # Create empty list for tools and dict for mapping tool names to clients
+    tools = []
+    tool_name_client_map = {}
+
+    # Create UMS MCPClient
+    ums_client = await CustomMCPClient.create("http://localhost:8006/mcp")
+    ums_tools = await ums_client.get_tools()
+    tools.extend(ums_tools)
+    for tool in ums_tools:
+        tool_name_client_map[tool["function"]["name"]] = ums_client
+
+    # Create DIAL Client
+    dial_client = DialClient(
+        api_key=os.getenv("DIAL_API_KEY", ""),
+        endpoint="https://ai-proxy.lab.epam.com",
+        tools=tools,
+        tool_name_client_map=tool_name_client_map
+    )
+
+    # Create system message with instructions for LLM
+    messages = [
+        Message(
+            role=Role.SYSTEM,
+            content="You are a helpful AI assistant that can help users manage users in the system using available tools. "
+                    "Use the provided tools to search for users, create new users, update existing users, and delete users. "
+                    "Always try to help the user complete their request using the available tools."
+        )
+    ]
+
+    # Simple console chat
+    while True:
+        user_input = input("\n👤 You: ").strip()
+        if not user_input:
+            continue
+        if user_input.lower() in ["exit", "quit", "bye"]:
+            print("Goodbye!")
+            break
+
+        messages.append(Message(role=Role.USER, content=user_input))
+
+        try:
+            ai_response = await dial_client.get_completion(messages)
+            messages.append(ai_response)
+        except Exception as e:
+            print(f"Error: {e}")
+            break
 
 if __name__ == "__main__":
     asyncio.run(main())
